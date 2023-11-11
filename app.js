@@ -1,18 +1,30 @@
 const express = require("express");
-const { blogs } = require("./model/index");
 const app = express();
-
+app.use(express.json());
 require("./model/index");
 
-app.use(express.json());
+const { blogs } = require("./model/index");
+const { multer, storage } = require("./middleware/multerConfig");
 
-app.post("/blogs", async (req, res) => {
+const upload = multer({ storage });
+
+// request access for uploads folder
+app.use("/uploads", express.static("uploads"));
+
+app.post("/blogs", upload.single("blogImage"), async (req, res) => {
 	const { title, subTitle, description } = req.body;
+	const imageUrl =
+		req.protocol +
+		"://" +
+		req.get("host") +
+		"/uploads/" +
+		req.file.filename;
 
 	const blog = await blogs.create({
 		title,
 		subTitle,
 		description,
+		imageUrl,
 	});
 
 	res.status(200).json({
@@ -85,7 +97,6 @@ app.put("/blogs/:id", async (req, res) => {
 		message: "Blog Updated Successfully.",
 	});
 });
-
 
 const port = process.env.PORT || 8000;
 app.listen(port, () => {
